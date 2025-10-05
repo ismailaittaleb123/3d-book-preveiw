@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>عرض كتاب ثلاثي الأبعاد | 3D Book Preview</title>
+  <meta name="description" content="عرض كتاب تفاعلي ثلاثي الأبعاد باستخدام Three.js">
+  <style>
+    body { 
+      margin: 0; 
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      overflow: hidden; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    canvas { 
+      display: block; 
+    }
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      z-index: 1000;
+    }
+    .instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      background: rgba(0,0,0,0.7);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">جاري تحميل الكتاب...</div>
+  <div class="instructions">💡 اسحب وسحب للتدوير • 🔍 حرك العجلة للتكبير والتصغير</div>
+
+  <!-- مكتبة THREE.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <!-- مكتبة التحكم بالماوس -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    // إخفاء شاشة التحميل
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // المشهد والكاميرا والعرض
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true 
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+    document.body.appendChild(renderer.domElement);
+
+    // التحكم بالماوس
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 2;
+    controls.maxDistance = 6;
+
+    // إضاءة
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 7);
+    scene.add(directionalLight);
+
+    // تحميل الغلاف
+    const loader = new THREE.TextureLoader();
+    
+    // معالجة الأخطاء في تحميل الصورة
+    const cover = loader.load(
+      'cover.jpg',
+      // عند التحميل الناجح
+      function(texture) {
+        console.log('تم تحميل الغلاف بنجاح');
+        hideLoading();
+      },
+      // أثناء التحميل
+      function(xhr) {
+        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+      },
+      // عند الخطأ
+      function(error) {
+        console.error('خطأ في تحميل الصورة:', error);
+        hideLoading();
+        // استخدام لون بديل إذا فشل تحميل الصورة
+        alert('⚠️ لم يتم العثور على صورة الغلاف (cover.jpg). تأكد من وجودها في المجلد.');
+      }
+    );
+
+    // المواد
+    const sideMat = new THREE.MeshPhongMaterial({ 
+      color: 0x2c3e50,
+      shininess: 30
+    });
+    
+    const spineMat = new THREE.MeshPhongMaterial({ 
+      color: 0x34495e,
+      shininess: 50
+    });
+
+    const book = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1.5, 0.2),
+      [
+        spineMat,    // الوجه الأيمن (الظهر)
+        spineMat,    // الوجه الأيسر (المقدمة)
+        sideMat,     // الوجه العلوي
+        sideMat,     // الوجه السفلي
+        new THREE.MeshPhongMaterial({ 
+          map: cover,
+          shininess: 10
+        }), // الغلاف الأمامي
+        sideMat      // الغلاف الخلفي
+      ]
+    );
+
+    scene.add(book);
+    camera.position.z = 3;
+
+    // الرسوم المتحركة
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // إعادة ضبط الحجم عند تغيير حجم النافذة
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // إخفاء التحميل بعد وقت قصير تحسباً
+    setTimeout(hideLoading, 3000);
+  </script>
+</body>
+</html>
